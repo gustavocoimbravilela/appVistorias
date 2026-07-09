@@ -1,7 +1,7 @@
 // Service worker — dá o "modo offline instalável" ao app.
 // Estratégia: rede primeiro (sempre pega a versão mais nova quando online)
 // e, se estiver sem internet, usa o que ficou guardado no cache.
-const CACHE = 'vistorias-v1';
+const CACHE = 'vistorias-v2';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {

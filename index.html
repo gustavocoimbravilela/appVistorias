@@ -74,12 +74,20 @@
   }
   .campo{margin-bottom:14px;}
   .campo label{display:block; font-size:12.5px; color:var(--secundario); font-weight:600; margin-bottom:6px;}
-  .campo input{
+  .campo input,
+  .campo select{
     width:100%; font-size:16px; color:var(--texto);
     padding:11px 12px; border:1px solid var(--borda); border-radius:10px; background:var(--branco);
     -webkit-appearance:none; appearance:none;
   }
-  .campo input:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
+  .campo select{
+    padding-right:38px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235b6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center;
+  }
+  .campo select:invalid{color:var(--suave);} /* placeholder acinzentado */
+  .campo input:focus,
+  .campo select:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
   .dupla{display:flex; gap:10px;}
   .dupla .campo{flex:1;}
   .secao-titulo{display:flex; justify-content:space-between; align-items:center; margin:20px 2px 12px;}
@@ -92,12 +100,14 @@
   .foto-item img{width:76px; height:76px; object-fit:cover; border-radius:8px; flex:none;}
   .foto-item .legenda-wrap{flex:1; min-width:0;}
   .foto-item .legenda-wrap label{font-size:11.5px; color:var(--secundario); display:block; margin-bottom:5px;}
-  .foto-item input{
-    width:100%; font-size:15px; padding:8px 10px; border:1px solid var(--borda); border-radius:8px; -webkit-appearance:none;
+  .foto-item textarea{
+    width:100%; font-size:15px; font-family:inherit; color:var(--texto); line-height:1.45;
+    padding:9px 10px; border:1px solid var(--borda); border-radius:8px;
+    min-height:76px; resize:vertical; -webkit-appearance:none; display:block; overflow:hidden;
   }
-  .foto-item input:focus{outline:none; border-color:var(--azul);}
+  .foto-item textarea:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
   .foto-item .rem{
-    background:none; border:none; color:var(--perigo); font-size:12px; padding:6px 0 0; cursor:pointer;
+    background:none; border:none; color:var(--perigo); font-size:12px; padding:8px 0 0; cursor:pointer;
     display:inline-flex; align-items:center; gap:4px;
   }
   .add-foto{
@@ -114,10 +124,10 @@
   .review-sum .rot{width:120px; color:var(--secundario); font-weight:600; font-size:12.5px; flex:none;}
   .rev-foto{
     background:var(--branco); border:1px solid var(--borda); border-radius:10px;
-    padding:10px; margin-bottom:10px; display:flex; gap:10px; align-items:center;
+    padding:10px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;
   }
   .rev-foto img{width:76px; height:76px; object-fit:cover; border-radius:8px; flex:none;}
-  .rev-foto .cap{font-size:14px;}
+  .rev-foto .cap{font-size:14px; white-space:pre-wrap; word-break:break-word; min-width:0;}
   .rev-foto .cap .n{font-size:11.5px; color:var(--secundario); display:block; margin-bottom:2px;}
   .rev-foto .cap .vazia{color:var(--suave); font-style:italic;}
   .nota-travada{
@@ -154,7 +164,6 @@
     opacity:0; transition:opacity .2s, transform .2s; z-index:60; pointer-events:none; max-width:90%; text-align:center;
   }
   .toast.ver{opacity:1; transform:translateX(-50%) translateY(0);}
-  /* ---- Janela de confirmação própria (substitui o confirm() nativo) ---- */
   .modal-overlay{
     position:fixed; inset:0; z-index:70; background:rgba(15,22,33,.5);
     display:flex; align-items:center; justify-content:center; padding:24px;
@@ -166,9 +175,7 @@
   .modal-card h3{margin:0 0 8px; font-size:17px; font-weight:600;}
   .modal-card p{margin:0 0 20px; font-size:14px; color:var(--secundario); line-height:1.5;}
   .modal-acoes{display:flex; gap:10px;}
-  .modal-btn{
-    flex:1; border-radius:10px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; border:none;
-  }
+  .modal-btn{flex:1; border-radius:10px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; border:none;}
   .modal-btn.cancelar{background:#eef0f3; color:var(--texto);}
   .modal-btn.confirmar{background:var(--azul); color:#fff;}
   .modal-btn.confirmar.perigo{background:var(--perigo);}
@@ -236,12 +243,16 @@
   </button>
   <div class="campo">
     <label for="unidade">Unidade</label>
-    <input id="unidade" type="text" placeholder="Ex.: Fórum de Contagem" autocomplete="off">
+    <select id="unidade" required>
+      <option value="" disabled selected>Selecione a unidade…</option>
+    </select>
   </div>
   <div class="dupla">
     <div class="campo">
       <label for="tecnico">Técnico</label>
-      <input id="tecnico" type="text" placeholder="Seu nome" autocomplete="off">
+      <select id="tecnico" required>
+        <option value="" disabled selected>Selecione…</option>
+      </select>
     </div>
     <div class="campo" style="max-width:150px;">
       <label for="data">Data</label>
@@ -250,7 +261,9 @@
   </div>
   <div class="campo">
     <label for="contrato">Contrato</label>
-    <input id="contrato" type="text" placeholder="Ex.: 045/2025" autocomplete="off">
+    <select id="contrato" required>
+      <option value="" disabled selected>Selecione o contrato…</option>
+    </select>
   </div>
   <div class="secao-titulo">
     <h2>Fotos</h2>
@@ -286,7 +299,6 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Janela de confirmação própria -->
 <div class="modal-overlay oculto" id="modal">
   <div class="modal-card">
     <h3 id="modalTitulo"></h3>
@@ -299,6 +311,32 @@
 </div>
 
 <script>
+/* ============================================================
+   ⬇⬇⬇  LISTA DE EDIFICAÇÕES  ⬇⬇⬇
+   Edite aqui: uma edificação por linha, entre aspas, com vírgula.
+   É a única coisa que você precisa mexer para trocar as unidades.
+   ============================================================ */
+const EDIFICACOES = [
+  'Fórum de Contagem',
+  'Comarca de Betim',
+  'TJMG — Sede (Av. Afonso Pena)',
+  'Fórum Lafayette',
+  'Juizado Especial de Contagem'
+];
+
+const TECNICOS = [
+  'João Silva',
+  'Maria Souza',
+  'Carlos Pereira'
+];
+
+const CONTRATOS = [
+  '045/2025',
+  '112/2024',
+  '078/2025'
+];
+/* ============================================================ */
+
 /* ===== BANCO LOCAL (IndexedDB) ===== */
 const DB_NOME='vistoriasDB', STORE='vistorias';
 function abrirDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NOME,1);
@@ -310,6 +348,11 @@ async function obterVistoria(id){const db=await abrirDB();return new Promise((re
 async function listarVistorias(){const db=await abrirDB();return new Promise((res,rej)=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAll();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error);});}
 async function apagarVistoria(id){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
 async function apagarTudo(){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
+
+/* ===== Utilitários ===== */
+const el=(id)=>document.getElementById(id);
+function escaparHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function autosize(ta){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';}
 
 /* ===== COMPRESSÃO DA FOTO (reduz tamanho + remove GPS) ===== */
 async function comprimirFoto(arquivo){
@@ -326,14 +369,13 @@ async function comprimirFoto(arquivo){
   }catch(e){return arquivo;}
 }
 
-/* ===== CONFIRMAÇÃO PRÓPRIA (funciona onde o confirm() nativo é bloqueado) ===== */
+/* ===== CONFIRMAÇÃO PRÓPRIA ===== */
 function confirmar({titulo,mensagem,textoConfirmar='Confirmar',perigo=false}){
   return new Promise((resolve)=>{
     el('modalTitulo').textContent=titulo;
     el('modalMsg').textContent=mensagem;
     const bc=el('modalConfirmar');
-    bc.textContent=textoConfirmar;
-    bc.classList.toggle('perigo',perigo);
+    bc.textContent=textoConfirmar; bc.classList.toggle('perigo',perigo);
     el('modal').classList.remove('oculto');
     const fechar=(v)=>{el('modal').classList.add('oculto'); bc.onclick=null; el('modalCancelar').onclick=null; el('modal').onclick=null; resolve(v);};
     bc.onclick=()=>fechar(true);
@@ -344,12 +386,28 @@ function confirmar({titulo,mensagem,textoConfirmar='Confirmar',perigo=false}){
 
 /* ===== ESTADO / NAVEGAÇÃO ===== */
 let rascunhoFotos=[]; let vistoriaAtualId=null;
-const el=(id)=>document.getElementById(id);
 function esconderTudo(){['listView','reviewView','formView','barraLista','barraReview','barraForm'].forEach(v=>el(v).classList.add('oculto'));}
 function irLista(){esconderTudo();el('listView').classList.remove('oculto');el('barraLista').classList.remove('oculto');window.scrollTo(0,0);}
 function irForm(){esconderTudo();el('formView').classList.remove('oculto');el('barraForm').classList.remove('oculto');window.scrollTo(0,0);}
 function toast(m){const t=el('toast');t.textContent=m;t.classList.add('ver');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2400);}
 function formatarData(iso){if(!iso)return '—';const [a,m,d]=iso.split('-');return `${d}/${m}/${a}`;}
+
+/* ===== Listas suspensas (unidade, técnico, contrato) ===== */
+function popularSelect(id, lista){
+  const sel=el(id);
+  lista.forEach(nome=>{
+    const o=document.createElement('option'); o.value=nome; o.textContent=nome; sel.appendChild(o);
+  });
+}
+// Define o valor de um select; se o valor salvo não estiver mais na lista,
+// inclui como opção só naquela vistoria, para nada se perder.
+function definirSelect(id, valor){
+  const sel=el(id);
+  if(valor && !Array.from(sel.options).some(o=>o.value===valor)){
+    const o=document.createElement('option'); o.value=valor; o.textContent=valor; sel.appendChild(o);
+  }
+  sel.value=valor||'';
+}
 
 /* ===== LISTA ===== */
 async function renderLista(){
@@ -365,8 +423,8 @@ async function renderLista(){
     card.innerHTML=`
       <div class="top">
         <div>
-          <p class="nome">${v.unidade||'(sem unidade)'}</p>
-          <p class="meta"><span>${v.fotos.length} foto(s)</span><span>${formatarData(v.data)}</span>${v.tecnico?`<span>${v.tecnico}</span>`:''}</p>
+          <p class="nome">${escaparHtml(v.unidade||'(sem unidade)')}</p>
+          <p class="meta"><span>${v.fotos.length} foto(s)</span><span>${formatarData(v.data)}</span>${v.tecnico?`<span>${escaparHtml(v.tecnico)}</span>`:''}</p>
         </div>
         <span class="badge ${enviada?'env':'pend'}">${enviada?'Enviado':'Pendente'}</span>
       </div>
@@ -394,13 +452,13 @@ async function abrirReview(id){
   el('revUnidade').textContent=v.unidade||'(sem unidade)';
   const b=el('revBadge');b.className='badge '+(enviada?'env':'pend');b.textContent=enviada?'Enviado':'Pendente';
   el('revSum').innerHTML=`
-    <div class="linha"><span class="rot">Técnico</span><span>${v.tecnico||'—'}</span></div>
+    <div class="linha"><span class="rot">Técnico</span><span>${escaparHtml(v.tecnico||'—')}</span></div>
     <div class="linha"><span class="rot">Data</span><span>${formatarData(v.data)}</span></div>
-    <div class="linha"><span class="rot">Contrato</span><span>${v.contrato||'—'}</span></div>`;
+    <div class="linha"><span class="rot">Contrato</span><span>${escaparHtml(v.contrato||'—')}</span></div>`;
   el('revFotoCount').textContent=`${v.fotos.length} foto(s)`;
   el('revFotos').innerHTML=v.fotos.map((f,i)=>`
     <div class="rev-foto"><img src="${URL.createObjectURL(f.blob)}" alt="">
-      <div class="cap"><span class="n">Foto ${i+1}</span>${f.legenda?f.legenda:'<span class="vazia">Sem legenda</span>'}</div>
+      <div class="cap"><span class="n">Foto ${i+1}</span>${f.legenda?escaparHtml(f.legenda):'<span class="vazia">Sem legenda</span>'}</div>
     </div>`).join('');
   el('btnEditar').classList.toggle('oculto',enviada);
   el('revLock').classList.toggle('oculto',!enviada);
@@ -420,12 +478,14 @@ function renderFotosForm(){
       <img src="${f.url}" alt="">
       <div class="legenda-wrap">
         <label>Legenda da foto ${i+1}</label>
-        <input type="text" placeholder="Ex.: Evaporadora — sala 203" value="${(f.legenda||'').replace(/"/g,'&quot;')}">
+        <textarea placeholder="Ex.: Evaporadora da sala 203 — dreno entupido, com vazamento sobre o forro...">${escaparHtml(f.legenda||'')}</textarea>
         <button class="rem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Remover</button>
       </div>`;
-    item.querySelector('input').addEventListener('input',(e)=>{f.legenda=e.target.value;});
-    item.querySelector('.rem').addEventListener('click',()=>{URL.revokeObjectURL(f.url);rascunhoFotos.splice(i,1);renderFotosForm();});
     cont.appendChild(item);
+    const ta=item.querySelector('textarea');
+    ta.addEventListener('input',()=>{f.legenda=ta.value; autosize(ta);});
+    autosize(ta); // ajusta a altura ao texto já existente
+    item.querySelector('.rem').addEventListener('click',()=>{URL.revokeObjectURL(f.url);rascunhoFotos.splice(i,1);renderFotosForm();});
   });
 }
 function novoForm(){
@@ -437,7 +497,9 @@ function novoForm(){
 async function editarAtual(){
   const v=await obterVistoria(vistoriaAtualId); if(!v)return;
   limparRascunho();
-  el('unidade').value=v.unidade||'';el('tecnico').value=v.tecnico||'';el('contrato').value=v.contrato||'';
+  definirSelect('unidade', v.unidade);
+  definirSelect('tecnico', v.tecnico);
+  definirSelect('contrato', v.contrato);
   el('data').value=v.data||new Date().toISOString().slice(0,10);
   rascunhoFotos=v.fotos.map(f=>({blob:f.blob,url:URL.createObjectURL(f.blob),legenda:f.legenda}));
   el('voltarTxt').textContent='Revisão';renderFotosForm();irForm();
@@ -457,8 +519,8 @@ el('inputFoto').addEventListener('change',async(e)=>{
   renderFotosForm(); e.target.value='';
 });
 el('btnSalvar').addEventListener('click',async()=>{
-  const unidade=el('unidade').value.trim();
-  if(!unidade){toast('Informe ao menos a unidade');el('unidade').focus();return;}
+  const unidade=(el('unidade').value||'').trim();
+  if(!unidade){toast('Selecione a unidade');el('unidade').focus();return;}
   const fotos=rascunhoFotos.map(f=>({blob:f.blob,legenda:f.legenda}));
   const campos={unidade,tecnico:el('tecnico').value.trim(),data:el('data').value,contrato:el('contrato').value.trim(),fotos};
   try{
@@ -493,12 +555,13 @@ window.addEventListener('offline',atualizarConexao);
 
 /* ===== Service worker (só ativa em https ou localhost) ===== */
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{/* ignora em file:// */});
-  });
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('service-worker.js').catch(()=>{});});
 }
 
 /* ===== Início ===== */
+popularSelect('unidade', EDIFICACOES);
+popularSelect('tecnico', TECNICOS);
+popularSelect('contrato', CONTRATOS);
 atualizarConexao();
 renderLista().catch(err=>toast('Erro ao abrir o banco: '+err.message));
 </script>

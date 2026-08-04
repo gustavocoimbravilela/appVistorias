@@ -123,6 +123,32 @@
   }
   .chip-equip{display:inline-block; background:var(--azul-claro); color:var(--azul-2);
     font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; margin-left:6px;}
+  /* ---- Câmera embutida (lanterna + foco contínuo) ---- */
+  #cameraView{position:fixed; inset:0; z-index:75; background:#000;}
+  #cameraVideo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+  .cam-fechar{
+    position:absolute; top:calc(env(safe-area-inset-top) + 14px); right:14px;
+    width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center;
+  }
+  .cam-bar{
+    position:absolute; left:0; right:0; bottom:0;
+    padding:18px 30px calc(env(safe-area-inset-bottom) + 22px);
+    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
+  }
+  .cam-torch{
+    width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
+    background:rgba(255,255,255,.18); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cam-torch.ligada{background:#f0b429; color:#1c2430;}
+  .cam-capturar{
+    width:76px; height:76px; border-radius:50%; cursor:pointer;
+    background:#fff; border:5px solid rgba(255,255,255,.4);
+  }
+  .cam-capturar:active{transform:scale(.94);}
+  .cam-espaco{width:54px;}
   .campo input:focus,
   .campo select:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
   .dupla{display:flex; gap:10px;}
@@ -195,6 +221,7 @@
   .rodape-limpar{text-align:center; margin:24px 0 8px;}
   .rodape-limpar button{background:none; border:none; color:var(--suave); font-size:12px; text-decoration:underline; cursor:pointer;}
   .oculto{display:none !important;}
+  .invisivel{visibility:hidden !important;}
   .toast{
     position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px);
     background:#222b38; color:#fff; font-size:13.5px; padding:11px 18px; border-radius:22px;
@@ -332,6 +359,21 @@
     Salvar vistoria
   </button>
 </div></div>
+
+<!-- Câmera embutida (lanterna contínua + foco contínuo) -->
+<div class="oculto" id="cameraView">
+  <video id="cameraVideo" autoplay playsinline muted></video>
+  <button class="cam-fechar" id="btnFecharCam" aria-label="Fechar câmera">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="cam-bar">
+    <button class="cam-torch invisivel" id="btnTorch" aria-label="Lanterna">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </button>
+    <button class="cam-capturar" id="btnCapturar" aria-label="Capturar"></button>
+    <span class="cam-espaco"></span>
+  </div>
+</div>
 
 <!-- Visualizador de foto ampliada (toque para fechar) -->
 <div class="oculto" id="visualizadorFoto"
@@ -747,6 +789,7 @@ const firebaseConfig = {
   messagingSenderId: "298738775826",
   appId: "1:298738775826:web:19dbb4096a1f8d0b2f25cb"
 };
+
 const FB_VERSAO = '12.15.0';
 /* ============================================================ */
 
@@ -942,6 +985,7 @@ function navIrParaLista(){
 window.addEventListener('popstate', function(){
   if(_navIgnorar){ _navIgnorar=false; return; }
   const anterior=navPilha.pop()||'lista';
+  if(anterior==='camera'){ fecharCamera(); return; }                 // fecha a câmera, fica na mesma tela
   if(anterior==='foto'){ fecharVisualizador(); return; }              // fecha a ampliação, fica na mesma tela
   if(anterior==='modal'){ if(_modalResolve) _modalResolve(_modalValor); return; }  // fecha a confirmação
   mostrarTela(navPilha[navPilha.length-1]||'lista');
@@ -1100,6 +1144,125 @@ function fecharVisualizador(){
   if(_visUrl){ URL.revokeObjectURL(_visUrl); _visUrl=null; }   // libera a memória
 }
 
+/* ===== CÂMERA EMBUTIDA =====
+   Câmera dentro do próprio app, com o que a nativa não nos deixa
+   controlar: LANTERNA que fica acesa enquanto enquadra (Android/
+   Chrome) e pedido de FOCO CONTÍNUO ao aparelho. Se o aparelho não
+   suportar (ex.: iPhone) ou a permissão for negada, cai na câmera
+   nativa/galeria automaticamente. */
+let _camStream=null,_camTrack=null,_torchLigada=false,_buscouLente=false;
+
+function pararStream(){
+  if(_camStream){ _camStream.getTracks().forEach(t=>t.stop()); }
+  _camStream=null; _camTrack=null;
+  el('cameraVideo').srcObject=null;
+}
+// Abre uma lente específica (ou a traseira padrão) e mostra na tela.
+async function abrirStream(deviceId, comTorch){
+  const video = deviceId
+    ? { deviceId:{exact:deviceId}, width:{ideal:1920}, height:{ideal:1080} }
+    : { facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} };
+  if(comTorch) video.advanced=[{torch:true}];   // alguns aparelhos só aceitam a lanterna na abertura
+  const st=await navigator.mediaDevices.getUserMedia({video, audio:false});
+  _camStream=st; _camTrack=st.getVideoTracks()[0];
+  el('cameraVideo').srcObject=st;
+  try{ await _camTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
+  return _camTrack;
+}
+// Tenta ligar/desligar a lanterna e exige CONFIRMAÇÃO do hardware.
+// O formato "advanced" é ignorado em silêncio quando não suportado —
+// então "não deu erro" NÃO significa "acendeu". Só vale se o aparelho
+// reportar torch nas configurações ativas ou anunciar a capacidade.
+async function aplicarTorch(track,on){
+  const caps=track.getCapabilities ? track.getCapabilities() : {};
+  const formas=[{advanced:[{torch:on}]},{torch:on}];
+  for(const c of formas){
+    try{
+      await track.applyConstraints(c);
+      const s=track.getSettings ? track.getSettings() : {};
+      if(s.torch===on) return true;                       // confirmado pelo hardware
+      if(s.torch===undefined && caps.torch) return true;  // capacidade anunciada, sem relato de estado
+    }catch(e){}
+  }
+  return false;
+}
+
+async function abrirCamera(){
+  try{ await abrirStream(null,false); }
+  catch(e){ el('inputFoto').click(); return; }   // sem suporte/permissão: caminho nativo
+  // O botão da lanterna fica SEMPRE visível: alguns aparelhos têm a
+  // lanterna mas não a "anunciam" nas capacidades. O teste confiável
+  // é tentar ligar de fato.
+  _torchLigada=false;
+  _buscouLente=false;
+  el('btnTorch').classList.remove('ligada');
+  el('btnTorch').classList.remove('invisivel');
+  el('cameraView').classList.remove('oculto');
+  navPush('camera');                              // o voltar físico fecha a câmera
+}
+async function alternarLanterna(){
+  if(!_camTrack) return;
+  const alvo=!_torchLigada;
+  if(await aplicarTorch(_camTrack,alvo)){
+    _torchLigada=alvo;
+    el('btnTorch').classList.toggle('ligada',_torchLigada);
+    return;
+  }
+  // A lente atual não expõe o LED, mas OUTRA lente do mesmo celular pode
+  // expor. Varremos as demais antes de desistir.
+  if(!_buscouLente){
+    _buscouLente=true;
+    toast('Procurando lente com lanterna…');
+    if(await tentarLenteComLanterna()) return;
+  }
+  el('btnTorch').classList.add('invisivel');
+  toast('Lanterna não suportada (lentes testadas: '+_lentesTestadas+')');
+}
+let _lentesTestadas=0;
+async function tentarLenteComLanterna(){
+  let devs=[];
+  try{ devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput'); }
+  catch(e){ return false; }
+  const atualId=(_camTrack && _camTrack.getSettings) ? _camTrack.getSettings().deviceId : null;
+  _lentesTestadas=devs.length;
+  // O Android costuma permitir UMA câmera aberta por vez: é preciso
+  // liberar a atual antes de testar as outras lentes.
+  pararStream();
+  for(const d of devs){
+    if(d.deviceId===atualId) continue;
+    try{
+      const tr=await abrirStream(d.deviceId,true);
+      if(await aplicarTorch(tr,true)){
+        _torchLigada=true;
+        el('btnTorch').classList.add('ligada');
+        toast('Lanterna ligada ✓');
+        return true;
+      }
+      pararStream();
+    }catch(e){ pararStream(); }
+  }
+  // Nada encontrado: reabre a câmera original para a tela não ficar preta.
+  try{ await abrirStream(atualId,false); }catch(e){ try{ await abrirStream(null,false); }catch(e2){} }
+  return false;
+}
+function fecharCamera(){
+  const cam=el('cameraView');
+  if(cam.classList.contains('oculto')) return;
+  cam.classList.add('oculto');
+  pararStream();
+  _torchLigada=false;
+}
+async function capturarDaCamera(){
+  const video=el('cameraVideo');
+  if(!video.videoWidth){ toast('Câmera ainda carregando…'); return; }
+  const c=document.createElement('canvas');
+  c.width=video.videoWidth; c.height=video.videoHeight;
+  c.getContext('2d').drawImage(video,0,0);
+  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
+  history.back();                                 // fecha a câmera pela pilha de navegação
+  await processarNovaFoto(blob);
+}
+
 /* ===== FORMULÁRIO ===== */
 function limparRascunho(){rascunhoFotos.forEach(f=>URL.revokeObjectURL(f.url));rascunhoFotos=[];}
 
@@ -1185,15 +1348,30 @@ async function editarAtual(){
 const FIRESTORE_FOTO_MAX = 700*1024; // ~700 KB por foto: cabe no limite de 1 MB por documento do Firestore
 
 let _fb=null;
+let _fbConfig=null;
+// Busca a config do próprio Firebase Hosting (endereço reservado do site).
+// Assim o repositório no GitHub não precisa conter a chave: o bloco
+// firebaseConfig acima pode ficar com valores de exemplo. O bloco só é
+// usado como reserva (ex.: testes locais fora do Hosting).
+async function obterFirebaseConfig(){
+  if(_fbConfig) return _fbConfig;
+  try{
+    const r=await fetch('/__/firebase/init.json',{cache:'no-store'});
+    if(r.ok){ _fbConfig=await r.json(); return _fbConfig; }
+  }catch(e){}
+  _fbConfig=firebaseConfig;
+  return _fbConfig;
+}
 async function initFirebase(){
   if(_fb) return _fb;
+  const cfg=await obterFirebaseConfig();
   const base=`https://www.gstatic.com/firebasejs/${FB_VERSAO}`;
   const [app,auth,fs]=await Promise.all([
     import(`${base}/firebase-app.js`),
     import(`${base}/firebase-auth.js`),
     import(`${base}/firebase-firestore.js`)
   ]);
-  const application = app.getApps().length ? app.getApp() : app.initializeApp(firebaseConfig);
+  const application = app.getApps().length ? app.getApp() : app.initializeApp(cfg);
   await auth.signInAnonymously(auth.getAuth(application)); // login anônimo (habilite no console)
   _fb={ db: fs.getFirestore(application), fs };
   return _fb;
@@ -1262,9 +1440,14 @@ el('btnVoltar').addEventListener('click',()=>history.back());
 el('btnVoltarReview').addEventListener('click',()=>history.back());
 el('visualizadorFoto').addEventListener('click',()=>history.back());
 el('btnEditar').addEventListener('click',editarAtual);
-el('btnAddFoto').addEventListener('click',()=>el('inputFoto').click());
-el('inputFoto').addEventListener('change',async(e)=>{
-  const arq=e.target.files[0]; if(!arq)return;
+el('btnAddFoto').addEventListener('click',abrirCamera);
+el('btnFecharCam').addEventListener('click',()=>history.back());
+el('btnTorch').addEventListener('click',alternarLanterna);
+el('btnCapturar').addEventListener('click',capturarDaCamera);
+
+// Pipeline comum às duas câmeras (embutida e nativa/galeria):
+// carimbo de local+hora, miniatura, item na lista e salvamento automático.
+async function processarNovaFoto(arq){
   toast('Processando foto…');
   const loc=await obterLocalizacao();
   const agora=new Date();
@@ -1281,6 +1464,11 @@ el('inputFoto').addEventListener('change',async(e)=>{
   rascunhoFotos.push(f);
   anexarFoto(f);                                   // acrescenta SÓ o item novo
   agendarAutoSalvar();
+}
+
+el('inputFoto').addEventListener('change',async(e)=>{
+  const arq=e.target.files[0]; if(!arq)return;
+  await processarNovaFoto(arq);
   e.target.value='';
 });
 
